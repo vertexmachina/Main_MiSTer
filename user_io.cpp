@@ -50,6 +50,7 @@ static uint64_t buffer_lba[16] = { ULLONG_MAX,ULLONG_MAX,ULLONG_MAX,ULLONG_MAX,
 								   ULLONG_MAX,ULLONG_MAX,ULLONG_MAX,ULLONG_MAX };
 
 static int use_save = 0;
+static int autosave_timer = 0;
 
 // mouse and keyboard emulation state
 static int emu_mode = EMU_NONE;
@@ -74,6 +75,7 @@ static bool winkey_pressed = 0;
 
 static uint16_t sdram_cfg = 0;
 
+static char current_game[4096];
 static char last_filename[1024] = {};
 void user_io_store_filename(char *filename)
 {
@@ -1521,6 +1523,8 @@ void user_io_init(const char *path, const char *xml)
 
 		send_rtc(3);
 
+		autosave_timer = cfg.autosave_interval ? GetTimer(cfg.autosave_interval*1000) : 0;
+
 		// release reset
 		if (!is_minimig() && !is_st()) user_io_status_set("[0]", 0);
 		if (xml && isXmlName(xml) == 1) arcade_check_error();
@@ -2638,7 +2642,31 @@ int user_io_file_tx(const char* name, unsigned char index, char opensave, char m
 
 	if (opensave)
 	{
-		FileGenerateSavePath(name, (char*)buf);
+		if (cfg.autosave_interval > 0)
+		{
+			FileGenerateAutosavePath(name, (char*)buf);
+
+			// Copy existing save to autosave slot initially
+			if (!FileExists((const char*)buf))
+			{
+				char save_buf[4096];
+				FileGenerateSavePath(name, (char*)save_buf);
+
+				printf("Copy %s to %s\n", save_buf, buf);
+				int size = FileLoad((const char*)save_buf, nullptr, 0);
+				char* fileBytes = new char[size];
+				FileLoad((const char*)save_buf, fileBytes, size);
+				FileSave((const char*)buf, fileBytes, size);
+
+				sync();
+				delete fileBytes;
+			}
+		}
+		else
+		{
+			FileGenerateSavePath(name, (char*)buf);
+		}
+
 		user_io_file_mount((char*)buf, 0, 1);
 	}
 
@@ -2659,6 +2687,8 @@ int user_io_file_tx(const char* name, unsigned char index, char opensave, char m
 		// Setup MSU
 		snes_msu_init(name);
 	}
+
+	strcpy(current_game, name);
 
 	return 1;
 }
@@ -2845,6 +2875,7 @@ void user_io_rtc_reset()
 static int coldreset_req = 0;
 
 static uint32_t res_timer = 0;
+static int backup_timer = 0;
 
 void user_io_poll()
 {
@@ -2900,6 +2931,29 @@ void user_io_poll()
 	if (core_type == CORE_TYPE_8BIT && !is_menu())
 	{
 		check_status_change();
+	}
+
+	if (backup_timer && CheckTimer(backup_timer))
+	{
+		diskled_on();
+
+		// Move Save Slot 0 to Save Slot 1 and copy autosave to Save Slot 0
+		char autosave_buf[4096];
+		char save_buf[4096];
+		char backup_buf[4096];
+		FileGenerateAutosavePath(current_game, (char*)autosave_buf);
+		FileGenerateSavePath(current_game, (char*)save_buf);
+		CreateBackupSave(current_game, (char*)backup_buf);
+
+		int size = FileLoad((const char*)autosave_buf, nullptr, 0);
+		char* fileBytes = new char[size];
+		FileLoad((const char*)autosave_buf, fileBytes, size);
+		FileSave((const char*)save_buf, fileBytes, size);
+		sync();
+
+		delete fileBytes;
+
+		backup_timer = 0;
 	}
 
 	// sd card emulation
@@ -2993,8 +3047,21 @@ void user_io_poll()
 				else if (op & 1) c64_readGCR(disk, lba, blks-1);
 				else break;
 			}
-			else if (op == 2)
+			else if (op == 2 || CheckTimer(autosave_timer))
 			{
+				if (CheckTimer(autosave_timer))
+				{
+					autosave_timer = GetTimer(cfg.autosave_interval*1000);
+				}
+				else if (op == 2)
+				{
+					if (!backup_timer)
+					{
+						// "Save Backup RAM" was manually selected; kick off timer to write autosave to Save Slot 0
+						backup_timer = GetTimer(2000);
+					}
+				}
+
 				//printf("SD WR %d on %d\n", lba, disk);
 
 				if (use_save) menu_process_save();

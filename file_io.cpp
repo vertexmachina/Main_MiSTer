@@ -903,6 +903,84 @@ void FileGenerateSavePath(const char *name, char* out_name, int ext_replace)
 	printf("SavePath=%s\n", out_name);
 }
 
+void FileGenerateAutosavePath(const char *name, char* out_name, int ext_replace)
+{
+	create_path(SAVE_DIR, CoreName);
+
+	sprintf(out_name, "%s/%s/", SAVE_DIR, CoreName);
+	char *fname = out_name + strlen(out_name);
+
+	const char *p = strrchr(name, '/');
+	if (p)
+	{
+		strcat(fname, p+1);
+	}
+	else
+	{
+		strcat(fname, name);
+	}
+
+	char *e = strrchr(fname, '.');
+	if (ext_replace && e)
+	{
+		strcpy(e,".autosav");
+	}
+	else
+	{
+		strcat(fname, ".autosav");
+	}
+
+	printf("AutosavePath=%s\n", out_name);
+}
+
+void CreateBackupSave(const char *name, char* out_name, int ext_replace)
+{
+	create_path(SAVE_DIR, CoreName);
+
+	sprintf(out_name, "%s/%s/", SAVE_DIR, CoreName);
+	char *fname = out_name + strlen(out_name);
+
+	const char *p = strrchr(name, '/');
+	if (p)
+	{
+		strcat(fname, p+1);
+	}
+	else
+	{
+		strcat(fname, name);
+	}
+
+	char *e = strrchr(fname, '.');
+	if (ext_replace && e)
+	{
+		strcpy(e,".sav");
+	}
+	else
+	{
+		strcat(fname, ".sav");
+	}
+
+	char name_buf1[4096];
+	char name_buf2[4096];
+	for (int i = cfg.backup_count+1; i >= 0; i--)
+	{
+		if (i == 0)
+		{
+			sprintf(name_buf1, "%s", getFullPath(out_name));
+		}
+		else
+		{
+			sprintf(name_buf1, "%s%d", getFullPath(out_name), i);
+		}
+
+		if (FileExists(name_buf1))
+		{
+			sprintf(name_buf2, "%s%d", getFullPath(out_name), i+1);
+			rename(name_buf1, name_buf2);
+		}
+	}
+}
+
 void FileGenerateSavestatePath(const char *name, char* out_name, int sufx)
 {
 	create_path(SAVESTATE_DIR, CoreName);

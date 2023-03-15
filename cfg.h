@@ -91,6 +91,8 @@ typedef struct {
 	char vga_mode[16];
 	char vga_mode_int;
 	char ntsc_mode;
+	uint16_t autosave_interval;
+	uint8_t backup_count;
 } cfg_t;
 
 extern cfg_t cfg;

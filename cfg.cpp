@@ -119,6 +119,8 @@ static const ini_var_t ini_vars[] =
 	{ "HDR_AVG_NITS", (void*)(&(cfg.hdr_avg_nits)), UINT16, 100, 10000},
 	{ "VGA_MODE", (void*)(&(cfg.vga_mode)), STRING, 0, sizeof(cfg.vga_mode) - 1 },
 	{ "NTSC_MODE", (void *)(&(cfg.ntsc_mode)), UINT8, 0, 2},
+	{ "AUTOSAVE_INTERVAL", (void *)(&(cfg.autosave_interval)), UINT16, 0, 65535},
+	{ "BACKUP_COUNT", (void *)(&(cfg.backup_count)), UINT8, 0, 255},
 };
 
 static const int nvars = (int)(sizeof(ini_vars) / sizeof(ini_var_t));
