@@ -93,6 +93,7 @@ typedef struct {
 	char ntsc_mode;
 	uint16_t autosave_interval;
 	uint8_t backup_count;
+	uint8_t boot_last_game;
 } cfg_t;
 
 extern cfg_t cfg;

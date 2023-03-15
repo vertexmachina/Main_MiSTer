@@ -121,6 +121,7 @@ static const ini_var_t ini_vars[] =
 	{ "NTSC_MODE", (void *)(&(cfg.ntsc_mode)), UINT8, 0, 2},
 	{ "AUTOSAVE_INTERVAL", (void *)(&(cfg.autosave_interval)), UINT16, 0, 65535},
 	{ "BACKUP_COUNT", (void *)(&(cfg.backup_count)), UINT8, 0, 255},
+	{ "BOOT_LAST_GAME", (void *)(&(cfg.boot_last_game)), UINT8, 0, 1},
 };
 
 static const int nvars = (int)(sizeof(ini_vars) / sizeof(ini_var_t));

@@ -1285,6 +1285,8 @@ void HandleUI(void)
 		break;
 	}
 
+	static bool first_run = true;
+
 	// Switch to current menu screen
 	switch (menustate)
 	{
@@ -1934,7 +1936,7 @@ void HandleUI(void)
 				page = 0;
 			}
 		}
-		else if (select || recent || minus || plus || !mgl->done)
+		else if (first_run || select || recent || minus || plus || !mgl->done)
 		{
 			if (!mgl->done)
 			{
@@ -2011,7 +2013,7 @@ void HandleUI(void)
 
 				if (p && !d)
 				{
-					if (p[0] == 'F' && (select || recent))
+					if (p[0] == 'F' && (first_run || select || recent))
 					{
 						store_name = 0;
 						opensave = 0;
@@ -2054,8 +2056,9 @@ void HandleUI(void)
 						if (!mgl->done) menustate = MENU_GENERIC_FILE_SELECTED;
 						else if (select) SelectFile(Selected_F[ioctl_index & 15], ext, fs_Options, fs_MenuSelect, fs_MenuCancel);
 						else if (recent_init(ioctl_index)) menustate = MENU_RECENT1;
+						first_run = false;
 					}
-					else if (p[0] == 'S' && (select || recent))
+					else if (p[0] == 'S' && (first_run || select || recent))
 					{
 						store_name = 0;
 						int idx = 1;
@@ -2104,6 +2107,7 @@ void HandleUI(void)
 						if (!mgl->done) menustate = MENU_GENERIC_IMAGE_SELECTED;
 						else if (select) SelectFile(Selected_tmp, ext, fs_Options, fs_MenuSelect, fs_MenuCancel);
 						else if (recent_init(ioctl_index + 500)) menustate = MENU_RECENT1;
+						first_run = false;
 					}
 					else if (select || minus || plus)
 					{
@@ -2206,7 +2210,7 @@ void HandleUI(void)
 							}
 						}
 					}
-					else if (recent)
+					else if (first_run || recent)
 					{
 						flat = !flat;
 						page = 0;
@@ -5034,7 +5038,7 @@ void HandleUI(void)
 			menustate = MENU_RECENT1;
 		}
 
-		if (select)
+		if (select || cfg.boot_last_game)
 		{
 			menustate = recent_select(SelectedDir, selPath, SelectedLabel) ? (enum MENU)fs_MenuSelect : MENU_RECENT1;
 		}
