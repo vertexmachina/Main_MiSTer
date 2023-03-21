@@ -23,4 +23,6 @@ int menu_allow_cfg_switch();
 void StoreIdx_F(int idx, const char *path);
 void StoreIdx_S(int idx, const char *path);
 
+void FinishedLoadingBios();
+
 #endif

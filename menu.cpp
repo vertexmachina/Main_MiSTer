@@ -303,6 +303,11 @@ static char Selected_F[16][1024] = {};
 static char Selected_S[16][1024] = {};
 static char Selected_tmp[1024] = {};
 
+void FinishedLoadingBios()
+{
+	menustate = MENU_GENERIC_MAIN2;
+}
+
 void StoreIdx_F(int idx, const char *path)
 {
 	strcpy(Selected_F[idx], path);

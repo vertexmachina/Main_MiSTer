@@ -2688,7 +2688,14 @@ int user_io_file_tx(const char* name, unsigned char index, char opensave, char m
 		snes_msu_init(name);
 	}
 
-	strcpy(current_game, name);
+	if (is_psx() && index == 0)
+	{
+		FinishedLoadingBios();
+	}
+	else
+	{
+		strcpy(current_game, name);
+	}
 
 	return 1;
 }
