@@ -2659,7 +2659,7 @@ int user_io_file_tx(const char* name, unsigned char index, char opensave, char m
 				FileSave((const char*)buf, fileBytes, size);
 
 				sync();
-				delete fileBytes;
+				delete[] fileBytes;
 			}
 		}
 		else
@@ -2951,7 +2951,7 @@ void user_io_poll()
 		FileSave((const char*)save_buf, fileBytes, size);
 		sync();
 
-		delete fileBytes;
+		delete[] fileBytes;
 
 		backup_timer = 0;
 	}
@@ -3055,6 +3055,9 @@ void user_io_poll()
 				}
 				else if (op == 2)
 				{
+					// Reset timer to prevent it firing during our manual save and/or poweroff
+					autosave_timer = GetTimer(cfg.autosave_interval*1000);
+
 					if (!backup_timer)
 					{
 						// "Save Backup RAM" was manually selected; kick off timer to write autosave to Save Slot 0
