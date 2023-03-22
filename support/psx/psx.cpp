@@ -4,6 +4,7 @@
 #include <string.h>
 #include <inttypes.h>
 
+#include "../../cfg.h"
 #include "../../file_io.h"
 #include "../../user_io.h"
 #include "../../spi.h"
@@ -432,7 +433,15 @@ static void psx_mount_save(const char *filename)
 	user_io_set_index(2);
 	if (strlen(filename))
 	{
-		FileGenerateSavePath(filename, buf, 0);
+		if (cfg.autosave_interval > 0)
+		{
+			FileGenerateAutosavePath(filename, buf);
+		}
+		else
+		{
+			FileGenerateSavePath(filename, buf, 0);
+		}
+
 		user_io_file_mount(buf, 2, 1, MCD_SIZE);
 		StoreIdx_S(2, buf);
 	}
@@ -771,6 +780,7 @@ void psx_mount_cd(int f_index, int s_index, const char *filename)
 			user_io_set_index(f_index);
 			process_ss(filename, name_len != 0);
 
+			SetCurrentGame(filename);
 			mount_cd(toc.end*CD_SECTOR_LEN, s_index);
 			loaded = 1;
 		}

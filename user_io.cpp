@@ -76,6 +76,26 @@ static bool winkey_pressed = 0;
 static uint16_t sdram_cfg = 0;
 
 static char current_game[4096];
+
+void SetCurrentGame(const char* game_name)
+{
+	strcpy(current_game, game_name);
+}
+
+void ResetAutosaveTimer()
+{
+	// PSX autosave timer triggers when the memcard status changes in-game and
+	// so the autosave should happen soon after to write the memcard to disk
+	if (is_psx())
+	{
+		autosave_timer = GetTimer(2500);
+	}
+	else
+	{
+		autosave_timer = cfg.autosave_interval ? GetTimer(cfg.autosave_interval*1000) : 0;
+	}
+}
+
 static char last_filename[1024] = {};
 void user_io_store_filename(char *filename)
 {
@@ -1523,7 +1543,10 @@ void user_io_init(const char *path, const char *xml)
 
 		send_rtc(3);
 
-		autosave_timer = cfg.autosave_interval ? GetTimer(cfg.autosave_interval*1000) : 0;
+		if (!is_psx())
+		{
+			ResetAutosaveTimer();
+		}
 
 		// release reset
 		if (!is_minimig() && !is_st()) user_io_status_set("[0]", 0);
@@ -2688,7 +2711,7 @@ int user_io_file_tx(const char* name, unsigned char index, char opensave, char m
 		snes_msu_init(name);
 	}
 
-	if (is_psx() && index == 0)
+	if (is_psx() && index == 0 && cfg.boot_last_game)
 	{
 		FinishedLoadingBios();
 	}
@@ -2950,7 +2973,11 @@ void user_io_poll()
 		char backup_buf[4096];
 		FileGenerateAutosavePath(current_game, (char*)autosave_buf);
 		FileGenerateSavePath(current_game, (char*)save_buf);
-		CreateBackupSave(current_game, (char*)backup_buf);
+
+		if (cfg.backup_count > 0)
+		{
+			CreateBackupSave(current_game, (char*)backup_buf);
+		}
 
 		int size = FileLoad((const char*)autosave_buf, nullptr, 0);
 		char* fileBytes = new char[size];
@@ -3054,20 +3081,35 @@ void user_io_poll()
 				else if (op & 1) c64_readGCR(disk, lba, blks-1);
 				else break;
 			}
-			else if (op == 2 || CheckTimer(autosave_timer))
+			else if (op == 2 || (autosave_timer && CheckTimer(autosave_timer)))
 			{
 				if (CheckTimer(autosave_timer))
 				{
-					autosave_timer = GetTimer(cfg.autosave_interval*1000);
+					if (is_psx())
+					{
+						const char* cmd = "D,Save Memory Cards";
+						user_io_status_set(cmd, 1, 0);
+						user_io_status_set(cmd, 0, 0);
+
+						autosave_timer = 0;
+					}
+					else
+					{
+						ResetAutosaveTimer();
+					}
+
 				}
 				else if (op == 2)
 				{
 					// Reset timer to prevent it firing during our manual save and/or poweroff
-					autosave_timer = GetTimer(cfg.autosave_interval*1000);
+					if (!is_psx())
+					{
+						ResetAutosaveTimer();
+					}
 
 					if (!backup_timer)
 					{
-						// "Save Backup RAM" was manually selected; kick off timer to write autosave to Save Slot 0
+						// "Save Backup RAM" was manually selected; kick off timer to write autosave to disk
 						backup_timer = GetTimer(2000);
 					}
 				}
@@ -3436,8 +3478,12 @@ void user_io_poll()
 
 		keyboard_leds = leds;
 
-		uint8_t info_n = spi_uio_cmd(UIO_INFO_GET);
-		if (info_n) show_core_info(info_n);
+		// Disable PSX core's "Saving" and "Region" displays
+		if (!is_psx())
+		{
+			uint8_t info_n = spi_uio_cmd(UIO_INFO_GET);
+			if (info_n) show_core_info(info_n);
+		}
 	}
 
 	if (!res_timer)
@@ -3514,7 +3560,21 @@ void user_io_poll()
 	if (is_megacd()) mcd_poll();
 	if (is_pce()) pcecd_poll();
 	if (is_saturn()) saturn_poll();
-	if (is_psx()) psx_poll();
+	if (is_psx())
+	{
+		psx_poll();
+
+		uint16_t mask = spi_uio_cmd16(UIO_GET_OSDMASK, 0);
+
+		// Game was saved to memory card; write memory card to disk
+		if (mask & 0x0800)
+		{
+			if (autosave_timer == 0)
+			{
+				ResetAutosaveTimer();
+			}
+		}
+	}
 	process_ss(0);
 }
 

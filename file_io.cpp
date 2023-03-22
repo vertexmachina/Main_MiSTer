@@ -962,7 +962,7 @@ void CreateBackupSave(const char *name, char* out_name, int ext_replace)
 
 	char name_buf1[4096];
 	char name_buf2[4096];
-	for (int i = cfg.backup_count+1; i >= 0; i--)
+	for (int i = cfg.backup_count; i >= 0; i--)
 	{
 		if (i == 0)
 		{

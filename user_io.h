@@ -278,6 +278,9 @@ char is_arcade();
 char is_saturn();
 char is_pcxt();
 
+void SetCurrentGame(const char* game_name);
+void StartAutosaveTimer();
+
 #define HomeDir(x) user_io_get_core_path(x)
 #define CoreName user_io_get_core_name()
 
